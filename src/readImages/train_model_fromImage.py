@@ -16,6 +16,9 @@ import tensorflow as tf
 from tensorflow.python.keras.models import Model #make sure to 
 from tensorflow.python.keras.layers import Dense, Flatten, Conv2D, MaxPooling2D, Input
 from sklearn.model_selection import train_test_split # this is the library for python mechine learning
+from PIL import Image
+
+tf.keras.backend.clear_session()
 
 # Directory containing the images
 DIR = "images"
@@ -45,7 +48,12 @@ def preprocess_data(spreadsheet, dir_path, num_records=6): #this 6 is number of 
         if os.path.exists(image_path):
             xray_image = imageio.v3.imread(image_path)
             image_array = np.array(xray_image)
-            images.append(image_array)
+
+            # Resize the image to 256x256
+            resized_image = Image.fromarray(image_array).resize((256, 256), Image.LANCZOS)
+            resized_image_array = np.array(resized_image)
+
+            images.append(resized_image_array)
             pneumonias.append(pneumonia)
         else:
             print(f"Image file {xray_file} not found.")
@@ -63,19 +71,19 @@ X_images = np.array(images, dtype=np.float32) # we need to change dtype from def
 y = np.array(pneumonias, dtype=np.int32)
 
 # Reshape images to add a channel dimension (for grayscale images)
-X_images = X_images.reshape(-1, X_images.shape[1], X_images.shape[2], 1)
+X_images = X_images.reshape(-1, 256, 256, 1)
 
 # Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X_images, y, test_size=0.2, random_state=42) #test_size amd random_state can be adjusted for traing performance
+X_train, X_test, y_train, y_test = train_test_split(X_images, y, test_size=1, random_state=4) #test_size amd random_state can be adjusted for traing performance
 
 # Print shapes and types for debugging
-print("X_train shape:", X_train.shape, "dtype:", X_train.dtype)
-print("y_train shape:", y_train.shape, "dtype:", y_train.dtype)
-print("X_test shape:", X_test.shape, "dtype:", X_test.dtype)
-print("y_test shape:", y_test.shape, "dtype:", y_test.dtype)
+# print("X_train shape:", X_train.shape, "dtype:", X_train.dtype)
+# print("y_train shape:", y_train.shape, "dtype:", y_train.dtype)
+# print("X_test shape:", X_test.shape, "dtype:", X_test.dtype)
+# print("y_test shape:", y_test.shape, "dtype:", y_test.dtype)
 
 # Define the model. This is the standard code for tensorflow. I guess we can adjust the numbers and activation for better fit
-image_input = Input(shape=(X_images.shape[1], X_images.shape[2], 1), name='image')
+image_input = Input(shape=(256, 256, 1), name='image')
 x = Conv2D(32, (3, 3), activation='relu')(image_input)
 x = MaxPooling2D((2, 2))(x)
 x = Flatten()(x)
@@ -92,7 +100,7 @@ model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy']
 model.fit(
     X_train,
     y_train,
-    epochs=10,
+    epochs=1,
     batch_size=2,
     validation_data=(X_test, y_test)
 )
