@@ -1,25 +1,51 @@
+import os
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, Flatten, Conv2D, MaxPooling2D, Input
 from sklearn.model_selection import train_test_split
+from PIL import Image
 
 # Set random seed for reproducibility
 np.random.seed(42)
 tf.random.set_seed(42)
 
-# Generate six random integer arrays of shape 255x255
-arrays = np.random.randint(0, 256, (6, 255, 255), dtype=np.uint8)
+# Directory containing the images
+DIR = "images"
+
+# List of image files
+image_files = [
+    "00000011_000.png",
+    "00000011_001.png",
+    "00000011_002.png",
+    "00000011_003.png",
+    "00000011_004.png",
+    "00000011_005.png",
+    "00000011_006.png"
+]
+
+# Function to load and preprocess images
+def load_and_preprocess_images(image_files, dir_path):
+    images = []
+    for file in image_files:
+        image_path = os.path.join(dir_path, file)
+        image = Image.open(image_path)
+        image = image.resize((256, 256))
+        image_array = np.array(image)
+        images.append(image_array)
+    return np.array(images)
+
+# Load and preprocess images
+arrays = load_and_preprocess_images(image_files, DIR)
 
 # Normalize the arrays to the range [0, 1]
 arrays = arrays / 255.0
 
-# Create a boolean output array (6 x 1)
-# Ensure at least 2 samples in each class
-outputs = np.array([1, 1, 1, 0, 0, 0], dtype=np.int32)
+# Create a boolean output array (7 x 1)
+outputs = np.array([1, 1, 1, 0, 0, 0, 0], dtype=np.int32)
 
 # Reshape arrays to add a channel dimension (for grayscale images)
-arrays = arrays.reshape(-1, 255, 255, 1)
+arrays = arrays.reshape(-1, 256, 256, 1)
 
 # Split the data into training and testing sets with stratification
 X_train, X_test, y_train, y_test = train_test_split(arrays, outputs, test_size=1/3, random_state=42, stratify=outputs)
@@ -31,7 +57,7 @@ print("X_test shape:", X_test.shape, "dtype:", X_test.dtype)
 print("y_test shape:", y_test.shape, "dtype:", y_test.dtype)
 
 # Define the model
-image_input = Input(shape=(255, 255, 1), name='image')
+image_input = Input(shape=(256, 256, 1), name='image')
 x = Conv2D(32, (3, 3), activation='relu')(image_input)
 x = MaxPooling2D((2, 2))(x)
 x = Flatten()(x)
