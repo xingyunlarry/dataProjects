@@ -22,14 +22,14 @@ from PIL import Image
 DIR = "images"
 
 # Load the spreadsheet
-file_path = 'Data/PatientsData.xlsx'
+file_path = 'Data/PatientsTrainingData.xlsx'
 spreadsheet = pd.read_excel(file_path)
 
 # Map categorical labels to numeric values
-label_mapping = {'Y2': 2, 'Y1': 1, 'N': 0}
-spreadsheet['Pneumonia'] = spreadsheet['Pneumonia'].map(label_mapping)
+#label_mapping = {'Y2': 2, 'Y1': 1, 'N': 0}
+#spreadsheet['Pneumonia'] = spreadsheet['Pneumonia'].map(label_mapping)
 
-def preprocess_data(spreadsheet, dir_path, num_records=6):
+def preprocess_data(spreadsheet, dir_path, num_records=5200, target_size=(256, 256)):
     images = []
     pneumonias = []
 
@@ -45,23 +45,40 @@ def preprocess_data(spreadsheet, dir_path, num_records=6):
         if os.path.exists(image_path):
             # Read and preprocess the image
             image = Image.open(image_path).convert('L')  # Convert to grayscale
-            image = image.resize((256, 256), Image.LANCZOS)  # Resize to 256x256
+            image = pad_image_to_target(image, target_size)  # Pad to target size
             image_array = np.array(image) / 255.0  # Normalize to [0, 1]
             images.append(image_array)
             pneumonias.append(pneumonia)
+            #print(f"Image file {image_path} found.")
         else:
-            print(f"Image file {xray_file} not found.")
+            print(f"Image file {image_path} not found.")
 
     return np.array(images), np.array(pneumonias)
 
-# Get the records
-images, pneumonias = preprocess_data(spreadsheet, DIR, num_records=6)
+def pad_image_to_target(image, target_size):
+    # Calculate the new size while maintaining aspect ratio
+    target_width, target_height = target_size
+    width, height = image.size
+    scale = min(target_width / width, target_height / height)
+    new_width = int(width * scale)
+    new_height = int(height * scale)
+    resized_image = image.resize((new_width, new_height), Image.LANCZOS)
+
+    # Create a new image with the target size and paste the resized image onto it
+    new_image = Image.new('L', target_size)
+    new_image.paste(resized_image, ((target_width - new_width) // 2, (target_height - new_height) // 2))
+
+    return new_image
+
+# Example usage
+# Assuming 'spreadsheet' is a DataFrame with the relevant columns
+images, pneumonias = preprocess_data(spreadsheet, DIR, num_records=5200, target_size=(256, 256))
 
 # Reshape images to add a channel dimension (for grayscale images)
 images = images.reshape(-1, 256, 256, 1)
 
 # Split the data into training and testing sets with stratification
-X_train, X_test, y_train, y_test = train_test_split(images, pneumonias, test_size=1, random_state=42, stratify=pneumonias)
+X_train, X_test, y_train, y_test = train_test_split(images, pneumonias, test_size=0.15, random_state=42, stratify=pneumonias)
 
 # Print shapes and types for debugging
 print("X_train shape:", X_train.shape, "dtype:", X_train.dtype)
@@ -99,3 +116,5 @@ print(f"\nTest accuracy: {test_acc}")
 # Save the model
 model.save('pneumonia_detection_model.h5')
 print("Model saved as 'pneumonia_detection_model.h5'")
+
+
