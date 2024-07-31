@@ -36,7 +36,7 @@ def preprocess_data(spreadsheet, dir_path, num_records=6):
         if os.path.exists(image_path):
             # Read and preprocess the image
             image = Image.open(image_path).convert('L')  # Convert to grayscale
-            image = image.resize((256, 256), Image.LANCZOS)  # Resize to 256x256
+            image = image.resize((768, 768), Image.LANCZOS)  # Resize to 768x768
             image_array = np.array(image) / 255.0  # Normalize to [0, 1]
             images.append(image_array)
             pneumonias.append(pneumonia)
@@ -49,7 +49,7 @@ def preprocess_data(spreadsheet, dir_path, num_records=6):
 images, pneumonias = preprocess_data(spreadsheet, DIR, num_records=6)
 
 # Reshape images to add a channel dimension (for grayscale images)
-images = images.reshape(-1, 256, 256, 1)
+images = images.reshape(-1, 768, 768, 1)
 
 # Split the data into training and testing sets with stratification
 X_train, X_test, y_train, y_test = train_test_split(images, pneumonias, test_size=1/3, random_state=42, stratify=pneumonias)
@@ -61,7 +61,7 @@ print("X_test shape:", X_test.shape, "dtype:", X_test.dtype)
 print("y_test shape:", y_test.shape, "dtype:", y_test.dtype)
 
 # Define the model
-image_input = Input(shape=(256, 256, 1), name='image')
+image_input = Input(shape=(768, 768, 1), name='image')
 x = Conv2D(32, (3, 3), activation='relu')(image_input)
 x = MaxPooling2D((2, 2))(x)
 x = Flatten()(x)
