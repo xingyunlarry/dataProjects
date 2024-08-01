@@ -98,7 +98,7 @@ model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=
 # Train the model with validation
 history = model.fit(
     datagen.flow(X_train, y_train, batch_size=32),
-    epochs=20,
+    epochs=30,
     validation_data=(X_val, y_val)
 )
 
