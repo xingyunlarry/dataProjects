@@ -1,22 +1,22 @@
-import os
-import imageio
-import numpy as np
-import pandas as pd
-import tensorflow as tf
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Dense, Flatten, Conv2D, MaxPooling2D, Input, Dropout
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import classification_report
-from PIL import Image
+import os  # this the library to find files from the computer where the code is running
+import imageio  # this is the library to read images
+import numpy as np  # this is the library for numerical operations
+import pandas as pd  # this is the library for data manipulation
+import tensorflow as tf  # this is the library for deep learning
+from tensorflow.keras.models import Model  # used to define a Keras model
+from tensorflow.keras.layers import Dense, Flatten, Conv2D, MaxPooling2D, Input, Dropout  # used to define layers in the model
+from tensorflow.keras.preprocessing.image import ImageDataGenerator  # used for data augmentation
+from sklearn.model_selection import train_test_split  # this is the library for splitting data into train/test sets
+from sklearn.preprocessing import LabelEncoder  # used to encode labels
+from sklearn.metrics import classification_report  # used to generate a classification report
+from PIL import Image  # this is the library to handle image operations
 
 # Directory containing the images
 DIR = "images"
 
 # Load the spreadsheet
 file_path = 'Data/PatientsTrainingData.xlsx'
-spreadsheet = pd.read_excel(file_path)
+spreadsheet = pd.read_excel(file_path)  # read the excel file into a pandas DataFrame
 
 # Function to preprocess images
 def preprocess_data(spreadsheet, dir_path, num_records=5200, target_size=(256, 256)):
@@ -57,12 +57,12 @@ def pad_image_to_target(image, target_size):
 
 # Preprocess data
 images, pneumonias = preprocess_data(spreadsheet, DIR, num_records=5200, target_size=(256, 256))
-images = images.reshape(-1, 256, 256, 1)
+images = images.reshape(-1, 256, 256, 1)  # Reshape images to add a channel dimension (for grayscale images)
 
 # Encode labels
 label_encoder = LabelEncoder()
-encoded_labels = label_encoder.fit_transform(pneumonias)
-num_classes = len(np.unique(encoded_labels))
+encoded_labels = label_encoder.fit_transform(pneumonias)  # Convert categorical labels to numeric values
+num_classes = len(np.unique(encoded_labels))  # Get the number of unique classes
 
 # Split data into training, validation, and testing sets
 X_train_val, X_test, y_train_val, y_test = train_test_split(images, encoded_labels, test_size=0.15, random_state=42, stratify=encoded_labels)
@@ -70,24 +70,24 @@ X_train, X_val, y_train, y_val = train_test_split(X_train_val, y_train_val, test
 
 # Data augmentation
 datagen = ImageDataGenerator(
-    rotation_range=10,
-    width_shift_range=0.1,
-    height_shift_range=0.1,
-    zoom_range=0.1,
-    horizontal_flip=True
+    rotation_range=10,  # Randomly rotate images in the range 0-10 degrees
+    width_shift_range=0.1,  # Randomly translate images horizontally
+    height_shift_range=0.1,  # Randomly translate images vertically
+    zoom_range=0.1,  # Randomly zoom into images
+    horizontal_flip=True  # Randomly flip images horizontally
 )
-datagen.fit(X_train)
+datagen.fit(X_train)  # Compute the data augmentation on the training set
 
 # Define the model
-image_input = Input(shape=(256, 256, 1), name='image')
-x = Conv2D(32, (3, 3), activation='relu')(image_input)
-x = MaxPooling2D((2, 2))(x)
-x = Conv2D(64, (3, 3), activation='relu')(x)
-x = MaxPooling2D((2, 2))(x)
-x = Flatten()(x)
-x = Dense(128, activation='relu')(x)
-x = Dropout(0.5)(x)
-output = Dense(num_classes, activation='softmax')(x)
+image_input = Input(shape=(256, 256, 1), name='image')  # Input layer
+x = Conv2D(32, (3, 3), activation='relu')(image_input)  # Convolutional layer with 32 filters
+x = MaxPooling2D((2, 2))(x)  # Max-pooling layer
+x = Conv2D(64, (3, 3), activation='relu')(x)  # Convolutional layer with 64 filters
+x = MaxPooling2D((2, 2))(x)  # Max-pooling layer
+x = Flatten()(x)  # Flatten the tensor
+x = Dense(128, activation='relu')(x)  # Fully connected layer with 128 units
+x = Dropout(0.5)(x)  # Dropout layer to prevent overfitting
+output = Dense(num_classes, activation='softmax')(x)  # Output layer with softmax activation
 
 # Create the model
 model = Model(inputs=image_input, outputs=output)
@@ -97,27 +97,27 @@ model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=
 
 # Train the model with validation
 history = model.fit(
-    datagen.flow(X_train, y_train, batch_size=32),
-    epochs=30,
-    validation_data=(X_val, y_val)
+    datagen.flow(X_train, y_train, batch_size=32),  # Train the model using data augmentation
+    epochs=100,  # Train for 20 epochs
+    validation_data=(X_val, y_val)  # Validate on the validation set
 )
 
 # Evaluate the model on the test set
-test_loss, test_acc = model.evaluate(X_test, y_test, verbose=2)
+test_loss, test_acc = model.evaluate(X_test, y_test, verbose=2)  # Evaluate the model on the test set
 print(f"\nTest accuracy: {test_acc}")
 
 # Get predictions
-predictions = model.predict(X_test)
-predicted_classes = np.argmax(predictions, axis=1)
+predictions = model.predict(X_test)  # Make predictions on the test set
+predicted_classes = np.argmax(predictions, axis=1)  # Get the class with the highest probability for each prediction
 
 # Print out predictions
 for i in range(len(X_test)):
     print(f"Image {i}: Predicted Class: {predicted_classes[i]}")
 
 # Calculate and print classification report
-target_names = label_encoder.classes_
-print(classification_report(y_test, predicted_classes, target_names=target_names))
+target_names = label_encoder.classes_  # Get the target class names
+print(classification_report(y_test, predicted_classes, target_names=target_names))  # Print the classification report
 
 # Save the model
-model.save('pneumonia_detection_model.h5')
+model.save('pneumonia_detection_model.h5')  # Save the trained model to a file
 print("Model saved as 'pneumonia_detection_model.h5'")
