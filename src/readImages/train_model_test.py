@@ -47,7 +47,7 @@ test_images = preprocess_test_images(test_image_paths)
 test_images = test_images.reshape(-1, 256, 256, 1)
 
 # Load the trained model
-model = load_model('pneumonia_detection_model.h5')
+model = load_model('best_pneumonia_detection_model.keras')
 
 # Make predictions
 predictions = model.predict(test_images)
