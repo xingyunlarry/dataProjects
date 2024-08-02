@@ -6,6 +6,7 @@ import tensorflow as tf  # this is the library for deep learning
 from tensorflow.keras.models import Model  # used to define a Keras model
 from tensorflow.keras.layers import Dense, Flatten, Conv2D, MaxPooling2D, Input, Dropout  # used to define layers in the model
 from tensorflow.keras.preprocessing.image import ImageDataGenerator  # used for data augmentation
+from tensorflow.keras.callbacks import ModelCheckpoint  # used for saving the best model
 from sklearn.model_selection import train_test_split  # this is the library for splitting data into train/test sets
 from sklearn.preprocessing import LabelEncoder  # used to encode labels
 from sklearn.metrics import classification_report  # used to generate a classification report
@@ -95,19 +96,26 @@ model = Model(inputs=image_input, outputs=output)
 # Compile the model
 model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
+# Define model checkpoint callback to save the best model
+checkpoint = ModelCheckpoint('best_pneumonia_detection_model.keras', monitor='val_accuracy', save_best_only=True, mode='max')
+
 # Train the model with validation
 history = model.fit(
     datagen.flow(X_train, y_train, batch_size=32),  # Train the model using data augmentation
-    epochs=100,  # Train for 20 epochs
-    validation_data=(X_val, y_val)  # Validate on the validation set
+    epochs=100,  # Train for 100 epochs
+    validation_data=(X_val, y_val),  # Validate on the validation set
+    callbacks=[checkpoint]  # Use the checkpoint callback to save the best model
 )
 
 # Evaluate the model on the test set
 test_loss, test_acc = model.evaluate(X_test, y_test, verbose=2)  # Evaluate the model on the test set
 print(f"\nTest accuracy: {test_acc}")
 
+# Load the best saved model
+best_model = tf.keras.models.load_model('best_pneumonia_detection_model.keras')
+
 # Get predictions
-predictions = model.predict(X_test)  # Make predictions on the test set
+predictions = best_model.predict(X_test)  # Make predictions on the test set
 predicted_classes = np.argmax(predictions, axis=1)  # Get the class with the highest probability for each prediction
 
 # Print out predictions
@@ -118,6 +126,6 @@ for i in range(len(X_test)):
 target_names = label_encoder.classes_  # Get the target class names
 print(classification_report(y_test, predicted_classes, target_names=target_names))  # Print the classification report
 
-# Save the model
-model.save('pneumonia_detection_model.h5')  # Save the trained model to a file
-print("Model saved as 'pneumonia_detection_model.h5'")
+# Save the best model
+best_model.save('best_pneumonia_detection_model_final.keras')  # Save the best model to a file
+print("Best model saved as 'best_pneumonia_detection_model_final.keras'")
