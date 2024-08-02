@@ -101,7 +101,7 @@ checkpoint = tf.keras.callbacks.ModelCheckpoint('best_pneumonia_detection_model.
 # Train the model with validation
 history = model.fit(
     datagen.flow(X_train, y_train, batch_size=32),  # Train the model using data augmentation
-    epochs=2,  # Train for 100 epochs
+    epochs=100,  # Train for 100 epochs
     validation_data=(X_val, y_val),  # Validate on the validation set
     callbacks=[checkpoint]  # Use the model checkpoint callback
 )
